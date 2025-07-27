@@ -689,7 +689,15 @@ mapview(dosm)
 ```{r}
 st_write(dosm, "reducido_UEL_salida_final.geojson", driver = "GeoJSON")
 ```
+```{r}
+columnas_josm <- c("name","oficial_name","amenity","operator:type",
+                    "house:number","ref:cue","isced:level","email","phone",
+                    "postcode","opening_hours","education_for:disabled","geometry")
 
+djosm <- dosm[, c(columnas_josm)]
+
+st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
+```
 
 ```{r}
 #para ver el recuento de categorias de turnos
@@ -763,5 +771,9 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 {{education_for:disabled}}
 
 
+# Changeset description
 
+#UNLu #Escuelas_Provincia_Buenos_Aires_Argentina
+
+#Mapa_Escolar_Buenos_Aires
 
