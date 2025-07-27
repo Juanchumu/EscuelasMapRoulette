@@ -1,0 +1,767 @@
+---
+title: "Tranformacion de geodataset"
+author: "Juan Jara"
+date: "2025-07-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Este proyecto tiene como objetivo procesar y transformar el conjunto de datos geográficos del [Mapa Escolar](https://mapaescolar.abc.gob.ar/mapaescolar/), con el fin de integrarlos en el ecosistema de OpenStreetMap (OSM) mediante la plataforma MapRoulette.
+
+El flujo de trabajo incluye la limpieza y estandarización del dataset original, el enriquecimiento de los registros con etiquetas (tags) compatibles con el esquema de OSM (como amenity=school, isced:level, operator:type, entre otros), y la generación de una capa geoespacial apta para su análisis y edición colaborativa.
+
+Posteriormente, los datos son convertidos a un formato GeoJSON que puede ser cargado en MapRoulette, permitiendo a la comunidad validar, corregir y completar los datos directamente sobre el mapa, respetando las convenciones del modelado en OSM.
+
+De esta manera, se busca mejorar la cobertura, precisión y semántica de la información educativa en OpenStreetMap, especialmente en zonas donde los datos están incompletos o desactualizados.
+
+
+
+
+```{r}
+library('sf')
+
+#sudo apt update
+#sudo apt install build-essential libgdal-dev libgeos-dev libproj-dev libudunits2-dev libglpk-dev
+#install.packages("Rcpp")
+#install.packages("terra")
+#install.packages("mapview")
+#install.packages("geosphere")
+#install.packages("shadowtext")
+
+library(dplyr)
+library('mapview')
+library(geosphere)
+
+library(stringr)
+
+
+library(grid)
+library(tidyverse)
+library(shadowtext)
+
+BLUE <- "#076fa2"
+RED <- "#E3120B"
+BLACK <- "#202020"
+GREY <- "grey50"
+
+```
+
+### Carga de datos:
+```{r}
+gdf <- st_read("Unidades Educativas Locales 30-06-2025.geojson")
+
+#Dataset reducido
+#gdf <- gdf[4000:4300,]
+
+```
+
+
+```{r}
+barplot(table(gdf$desfavorabilidad), 
+     main = "Desfavorabilidad",
+     xlab = "Valor",
+     ylab = "Frecuencia Absoluta", 
+     col = "lightblue",
+     border = "black")
+
+```
+
+```{r}
+#para ver el recuento de categorias
+datos <- as.data.frame(table(gdf$subvencion))
+
+
+plt <- ggplot(datos) +
+  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
+
+plt <- plt + 
+  scale_x_continuous(
+    #limits = c(0, 8000),
+    #breaks = seq(0, 55, by = 5), 
+    expand = c(0, 0), # The horizontal axis does not extend to either side
+    position = "top"  # Labels are located on the top
+  ) +
+  # The vertical axis only extends upwards 
+  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
+  theme(
+    # Set background color to white
+    panel.background = element_rect(fill = "white"),
+    # Set the color and the width of the grid lines for the horizontal axis
+    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
+    # Remove tick marks by setting their length to 0
+    axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Remove labels from the vertical axis
+    axis.text.y = element_blank(),
+    # But customize labels for the horizontal axis
+    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
+  )
+
+plt <- plt + 
+  geom_shadowtext(
+    data = subset(datos, Freq < 4000),
+    aes(Freq, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = BLUE,
+    bg.colour = "white",
+    bg.r = 0.2,
+    family = "Econ Sans Cnd",
+    size = 7
+  ) + 
+  geom_text(
+    data = subset(datos, Freq >= 4000),
+    aes(0, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = "white",
+    family = "Econ Sans Cnd",
+    size = 7
+  )
+
+plt <- plt +
+  labs(
+    title = "Distribución de Subvencion",
+    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
+  ) + 
+  theme(
+    plot.title = element_text(
+      family = "Econ Sans Cnd", 
+      face = "bold",
+      size = 12
+    ),
+    plot.subtitle = element_text(
+      family = "Econ Sans Cnd",
+      size = 8
+    )
+  )
+plt
+
+
+```
+
+```{r}
+#para ver el recuento de categorias
+datos <- as.data.frame(table(gdf$depend_func))
+
+
+plt <- ggplot(datos) +
+  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
+
+plt <- plt + 
+  scale_x_continuous(
+    #limits = c(0, 8000),
+    #breaks = seq(0, 55, by = 5), 
+    expand = c(0, 0), # The horizontal axis does not extend to either side
+    position = "top"  # Labels are located on the top
+  ) +
+  # The vertical axis only extends upwards 
+  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
+  theme(
+    # Set background color to white
+    panel.background = element_rect(fill = "white"),
+    # Set the color and the width of the grid lines for the horizontal axis
+    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
+    # Remove tick marks by setting their length to 0
+    axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Remove labels from the vertical axis
+    axis.text.y = element_blank(),
+    # But customize labels for the horizontal axis
+    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
+  )
+
+plt <- plt + 
+  geom_shadowtext(
+    data = subset(datos, Freq < 3000),
+    aes(Freq, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = BLUE,
+    bg.colour = "white",
+    bg.r = 0.2,
+    family = "Econ Sans Cnd",
+    size = 4
+  ) + 
+  geom_text(
+    data = subset(datos, Freq >= 3000),
+    aes(0, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = "white",
+    family = "Econ Sans Cnd",
+    size = 4
+  )
+
+plt <- plt +
+  labs(
+    title = "Distribución de Dependencia Funcional",
+    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
+  ) + 
+  theme(
+    plot.title = element_text(
+      family = "Econ Sans Cnd", 
+      face = "bold",
+      size = 12
+    ),
+    plot.subtitle = element_text(
+      family = "Econ Sans Cnd",
+      size = 8
+    )
+  )
+plt
+
+
+
+```
+
+```{r}
+#para ver el recuento de categorias
+table(gdf$periodo)
+
+```
+
+
+
+```{r}
+#table(gdf$nivel)
+datos <- as.data.frame(table(gdf$nivel))
+plt <- ggplot(datos) +
+  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
+
+plt <- plt + 
+  scale_x_continuous(
+    #limits = c(0, 8000),
+    #breaks = seq(0, 55, by = 5), 
+    expand = c(0, 0), # The horizontal axis does not extend to either side
+    position = "top"  # Labels are located on the top
+  ) +
+  # The vertical axis only extends upwards 
+  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
+  theme(
+    # Set background color to white
+    panel.background = element_rect(fill = "white"),
+    # Set the color and the width of the grid lines for the horizontal axis
+    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
+    # Remove tick marks by setting their length to 0
+    axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Remove labels from the vertical axis
+    axis.text.y = element_blank(),
+    # But customize labels for the horizontal axis
+    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
+  )
+
+plt <- plt + 
+  geom_shadowtext(
+    data = subset(datos, Freq < 1000),
+    aes(Freq, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = BLUE,
+    bg.colour = "white",
+    bg.r = 0.2,
+    family = "Econ Sans Cnd",
+    size = 7
+  ) + 
+  geom_text(
+    data = subset(datos, Freq >= 1000),
+    aes(0, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = "white",
+    family = "Econ Sans Cnd",
+    size = 7
+  )
+
+plt <- plt +
+  labs(
+    title = "Distribución de Escuelas según Nivel de Enseñanza",
+    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
+  ) + 
+  theme(
+    plot.title = element_text(
+      family = "Econ Sans Cnd", 
+      face = "bold",
+      size = 12
+    ),
+    plot.subtitle = element_text(
+      family = "Econ Sans Cnd",
+      size = 8
+    )
+  )
+plt
+
+
+
+```
+
+
+```{r}
+barplot(table(gdf$id_nivel), 
+     main = "id_nivel",
+     xlab = "Valor",
+     ylab = "Frecuencia Absoluta", 
+     col = "lightblue",
+     border = "black")
+
+
+```
+```{r}
+table(gdf$nivel, gdf$id_nivel)
+
+```
+
+```{r}
+#para ver el recuento de categorias de turnos
+table(gdf$turnos)
+
+```
+
+```{r}
+#para ver el recuento de categorias de sector
+table(gdf$sector)
+
+```
+
+```{r}
+#para ver el recuento de categorias de distrito
+table(gdf$distrito)
+
+```
+
+
+
+
+```{r}
+if(FALSE){
+  columnas_clave <- c("numero_fila","distrito","cueanexo",
+                     "nombre","calle","nro","calle_lateral_derecha",
+                     "calle_lateral_izquierda","localidad","codigo_postal",
+                     "caracteristica_telefonica","nro_telefono",
+                     "email","sector","seccion_electoral",
+                     "latitud","longitud","nivel","turnos","id_nivel","geometry")
+}
+```
+
+
+Solamente me quedo con las columnas que pueden ser importadas a OpenStreetMap
+```{r}
+columnas_clave <- c("cueanexo",
+                   "nombre","calle","nro","calle_lateral_derecha",
+                   "calle_lateral_izquierda","localidad","codigo_postal",
+                   "caracteristica_telefonica","nro_telefono",
+                   "email","sector",
+                   "latitud","longitud","nivel","turnos","id_nivel","geometry")
+
+dataset_reducido <- gdf[, c(columnas_clave)]
+```
+
+
+
+```{r}
+#mapview(dataset_filtrado)
+
+```
+
+
+
+
+
+### Escuelas cercanas
+
+Para Advertir al mapeador de que posiblemente haya multiples instituciones
+en esa ubicacion geografica:
+
+* Creo una columna "cercania" que puede tomar los valores:
+  * Hay un registro cercano en un radio de 100m
+  * Hay x-cantidad registros cercanos en un radio de 100m
+  * No hay registros cercanos en un radio de 100m
+
+Esta toma 4 minutos procesarlo
+```{r}
+
+#filtro para tener solo jardines, primarias, secundarias y superiores,
+df <- dataset_reducido[dataset_reducido$id_nivel < 6, ]
+#saco los lvl 4
+#df <- df %>%
+#  filter(id_nivel != 4)
+
+
+
+# Crear la columna vacía
+df$cercania <- NA
+df$cercanos <- NA
+
+# Calcular para cada fila
+for (i in 1:nrow(df)) {
+  
+  # Coordenadas del registro i
+  coord_i <- c(df$longitud[i], df$latitud[i])
+  
+  # Calcula distancias a todos los registros
+  distancias <- distHaversine(coord_i, cbind(df$longitud, df$latitud))
+  
+  # Elimina su propia distancia
+  distancias[i] <- Inf
+  
+  # Cuenta cuántos están a menos de 100 m
+  cantidad <- sum(distancias < 100)
+  
+  # Asigna a la columna "cercanos"
+  df$cercanos[i] <- cantidad
+  
+  # Categoriza en "cercania"
+  if (cantidad > 0) {
+    if(cantidad == 1){
+      df$cercania[i] <- paste( "Hay un registro cercano en un radio de 100m")
+    }else{
+      df$cercania[i] <- paste( "Hay", cantidad, "registros cercanos en un radio de 100m")
+    }
+  } else {
+    df$cercania[i] <- "No hay registros cercanos en un radio de 100m"
+  }
+}
+
+
+
+#table(df$cercania)
+
+```
+
+
+
+```{r}
+barplot(table(df$cercanos), 
+     main = "Cercanias",
+     xlab = "Cantidad",
+     ylab = "Frecuencia Absoluta", 
+     col = "lightblue",
+     border = "black")
+
+```
+
+
+
+```{r}
+df$cercanos <- as.factor(df$cercanos) #tiene que estar como factor para que lo tome
+#mapview(df)
+
+mapview(df, zcol = "cercanos")
+```
+
+
+
+
+
+
+```{r}
+#agarro una columna para meter despues otras 
+dosm <- df[, "email"]
+dosm$latitud <- df$latitud
+dosm$longitud <- df$longitud
+df <- df %>%
+  mutate(`isced:level` = case_when(
+    id_nivel == 1 ~ 0,
+    id_nivel == 2 ~ 1,
+    id_nivel == 3 ~ 2,
+    id_nivel == 4 ~ 3,
+    id_nivel == 5 ~ 2
+  ))
+dosm$`isced:level` <- df$`isced:level`
+
+
+dosm <- dosm %>%
+  mutate(`amenity` = case_when(
+    `isced:level` == 0~ "kindergarten",
+    `isced:level` == 1 ~ "school",
+    `isced:level` == 2 ~ "school",
+    `isced:level` == 3 ~ "college",
+  ))
+
+
+#Dedicada para instruccion 
+dosm <- dosm %>%
+  mutate(`tipo` = case_when(
+    `isced:level` == 0~ "el jardín",
+    `isced:level` == 1 ~ "la escuela",
+    `isced:level` == 2 ~ "la escuela",
+    `isced:level` == 3 ~ "el colegio",
+  ))
+
+
+df <- df %>%
+  mutate(`operator:type` = case_when(
+    sector == 'Estatal' ~ "public",
+    sector == 'Privado' ~ 'private'
+  ))
+
+dosm$`operator:type` <- df$`operator:type`  
+
+
+df <- df %>%
+  mutate(`house:number` = case_when(
+    nro == 'S/N' ~ "No hay altura registrada",
+    nro != 'S/N' ~ nro
+  ))
+dosm$`house:number` <- df$`house:number` 
+
+dosm$`ref:cue` <- df$cueanexo
+
+dosm$postcode <- df$codigo_postal
+
+```
+
+
+```{r}
+#Deteccion de escuelas especiales
+
+df <- df %>%
+  mutate(es_especial = ifelse(
+    str_detect(nombre, regex("ESPECIAL", ignore_case = TRUE)),
+    "   * education_for:disabled=yes",
+    ""))
+dosm$`education_for:disabled` <- df$es_especial
+```
+
+
+
+```{r}
+df <- df %>%
+  mutate(`opening_hours` = case_when(
+    turnos == '"DOBLE ESCOLARIDAD",INTERMEDIO' ~ "Mo-Fr 08:00-16:00",
+    turnos == '"DOBLE ESCOLARIDAD"' ~ "Mo-Fr 08:00-16:00",
+    turnos == '"DOBLE ESCOLARIDAD",INTERMEDIO,MAÑANA' ~ "Mo-Fr 08:00-16:00",
+    turnos == '"DOBLE ESCOLARIDAD",INTERMEDIO,VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == '"DOBLE ESCOLARIDAD",INTERMEDIO,MAÑANA,TARDE' ~ "Mo-Fr 08:00-16:00",
+    turnos == '"DOBLE ESCOLARIDAD",MAÑANA' ~ "Mo-Fr 08:00-16:00",
+    turnos == '"DOBLE ESCOLARIDAD",MAÑANA,NOCHE' ~ "Mo-Fr 08:00-22:30",
+    turnos == '"DOBLE ESCOLARIDAD",MAÑANA,NOCHE,TARDE' ~ "Mo-Fr 08:00-22:30",
+    turnos == '"DOBLE ESCOLARIDAD",MAÑANA,TARDE' ~ "Mo-Fr 08:00-16:00",
+    turnos == '"DOBLE ESCOLARIDAD",MAÑANA,TARDE,VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == '"DOBLE ESCOLARIDAD",MAÑANA,VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == '"DOBLE ESCOLARIDAD",TARDE' ~ "Mo-Fr 08:00-16:00",
+    turnos == '"DOBLE ESCOLARIDAD",TARDE,VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == '"DOBLE ESCOLARIDAD",VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == 'ALTERNADO,"DOBLE ESCOLARIDAD"' ~ "Mo-Fr 08:00-16:00",
+    turnos == 'ALTERNADO' ~ "Mo-Fr 08:00-16:00",
+    turnos == 'ALTERNADO,"DOBLE ESCOLARIDAD",MAÑANA' ~ "Mo-Fr 08:00-16:00",
+    turnos == 'ALTERNADO,"DOBLE ESCOLARIDAD",MAÑANA,TARDE' ~ "Mo-Fr 08:00-16:00",
+    turnos == 'ALTERNADO,INTERMEDIO,TARDE' ~ "Mo-Fr 12:00-16:00",
+    turnos == 'ALTERNADO,MAÑANA' ~ "Mo-Fr 08:00-12:00",
+    turnos == 'ALTERNADO,MAÑANA,NOCHE' ~ "Mo-Fr 08:00-12:00;Mo-Fr 18:30-22:30",
+    turnos == 'ALTERNADO,MAÑANA,TARDE,VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == 'ALTERNADO,MAÑANA,TARDE' ~ "Mo-Fr 08:00-16:00",
+    turnos == 'ALTERNADO,NOCHE,VESPERTINO' ~ "Mo-Fr 16:00-22:30",
+    turnos == 'ALTERNADO,TARDE' ~ "Mo-Fr 12:00-16:00",
+    turnos == 'ALTERNADO,TARDE,VESPERTINO' ~ "Mo-Fr 16:00-21:30",
+    turnos == 'ALTERNADO,VESPERTINO' ~ "Mo-Fr 17:30-21:30",
+    turnos == 'INTERMEDIO' ~ "Mo-Fr 12:00-17:00",
+    turnos == 'INTERMEDIO,MAÑANA' ~ "Mo-Fr 08:00-17:00",
+    turnos == 'INTERMEDIO,MAÑANA,TARDE' ~ "Mo-Fr 08:00-17:00",
+    turnos == 'INTERMEDIO,MAÑANA,TARDE,VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == 'INTERMEDIO,MAÑANA,VESPERTINO' ~ "Mo-Fr 08:00-12:00;Mo-Fr 17:30-21:30",
+    turnos == 'INTERMEDIO,TARDE' ~ "Mo-Fr 12:00-17:00",
+    turnos == 'INTERMEDIO,VESPERTINO' ~ "Mo-Fr 12:00-21:30",
+    turnos == 'MAÑANA' ~ "Mo-Fr 08:00-12:00",
+    turnos == 'MAÑANA,NOCHE,TARDE' ~ "Mo-Fr 08:00-22:30",
+    turnos == 'MAÑANA,NOCHE' ~ "Mo-Fr 08:00-12:00; Mo-Fr 18:30-22:30",
+    turnos == 'MAÑANA,NOCHE,TARDE,VESPERTINO' ~ "Mo-Fr 08:00-22:30",
+    turnos == 'MAÑANA,TARDE' ~ "Mo-Fr 08:00-17:00",
+    turnos == 'MAÑANA,TARDE,VESPERTINO' ~ "Mo-Fr 08:00-21:30",
+    turnos == 'MAÑANA,VESPERTINO' ~ "Mo-Fr 08:00-12:00; Mo-Fr 17:30-21:30",
+    turnos == 'NOCHE' ~ "Mo-Fr 18:30-22:30",
+    turnos == 'NOCHE,TARDE' ~ "Mo-Fr 13:00-22:30",
+    turnos == 'NOCHE,TARDE,VESPERTINO' ~ "Mo-Fr 13:00-22:30",
+    turnos == 'NOCHE,VESPERTINO' ~ "Mo-Fr 17:30-22:30",
+    turnos == 'TARDE' ~ "Mo-Fr 13:00-17:00",
+    turnos == 'TARDE,VESPERTINO' ~ "Mo-Fr 13:00-21:30",
+    turnos == 'VESPERTINO' ~ "Mo-Fr 17:30-21:30",
+    TRUE ~ NA_character_
+  ))
+
+
+
+dosm$`opening_hours` <- df$`opening_hours` 
+
+
+
+```
+
+
+```{r}
+
+#Escuelas cercanas
+
+dosm$cercania <- df$cercania
+dosm$cercanos <- df$cercanos
+
+#Numero de telefono
+df <- df %>%
+  mutate(
+    telefono = if_else(
+      !is.na(caracteristica_telefonica) & !is.na(nro_telefono) & nro_telefono != "" & caracteristica_telefonica != "",
+      paste0("+54 ", caracteristica_telefonica," ", nro_telefono),
+      paste0("No hay telefono registrado")
+    )
+  )
+
+dosm$`phone` <- df$telefono 
+
+
+#Calles, calle derecha y izquierda
+df <- df %>%
+  mutate(
+    calle_almacenada = if_else(
+      !is.na(calle_lateral_derecha) & !is.na(calle_lateral_izquierda) & calle_lateral_derecha != "" & calle_lateral_izquierda != "",
+      paste0(calle, " entre ", calle_lateral_derecha, " y ", calle_lateral_izquierda),
+      paste0(calle)
+    )
+  )
+dosm$calle <- df$calle_almacenada
+
+#problemas:
+# Localidad 
+
+
+
+```
+
+
+```{r}
+
+to_custom_title <- function(texto) {
+  # Palabras que deben quedar en minúscula (excepto si están al principio)
+  excepciones <- c("de", "la", "las", "los", "del", "y", "en", "el", "a", "al")
+
+  # Pasar todo a título
+  palabras <- strsplit(texto, " ")[[1]]
+  palabras <- str_to_title(palabras)
+
+  # Corregir excepciones (menos la primera palabra)
+  palabras[-1] <- ifelse(tolower(palabras[-1]) %in% excepciones,
+                         tolower(palabras[-1]),
+                         palabras[-1])
+  
+  # Unir de nuevo
+  paste(palabras, collapse = " ")
+}
+
+#Primera mayuscula y el resto minuscula
+dosm$name <- paste0(
+  toupper(substr(df$nombre, 1, 1)),
+  tolower(substr(df$nombre, 2, nchar(df$nombre)))
+)
+#Elimina el "N°"
+dosm$name <- str_replace(dosm$name, "n°\\s*", "")
+dosm$name <- str_replace(dosm$name, regex("n°\\s*", ignore_case = TRUE), "")
+dosm$name <- str_replace(dosm$name, regex("n[º°]\\s*", ignore_case = TRUE), "")
+
+dosm$name <- str_to_title(dosm$name)
+
+dosm$name <- sapply(dosm$name, to_custom_title)
+
+dosm$`oficial_name` <- sapply(df$nombre, to_custom_title) 
+
+
+
+```
+
+
+
+```{r}
+mapview(dosm)
+```
+
+```{r}
+st_write(dosm, "reducido_UEL_salida_final.geojson", driver = "GeoJSON")
+```
+
+
+```{r}
+#para ver el recuento de categorias de turnos
+table(dosm$`education_for:disabled`)
+
+```
+
+# MapRoulette:
+
+## Descricion del desafio::
+
+las escuelas estan ubicadas en datos oficiales pero no en OSM 
+
+
+
+
+
+
+#Instrucciones
+
+## Antes de Empezar: [Lee la pagina de la wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación)
+
+
+## En esta tarea, tenes que buscar {{tipo}}:
+* {{oficial_name}} 
+* Ubicada en la calle:{{calle}}
+* {{latitud}}, {{longitud}}
+
+### Advertencias en la En la ubicacion:
+* {{cercania}}
+* Y la misma puede que este lejos de la ubicacion marcada.
+
+
+#### Eres libre de utilizar otras fuentes para ubicar {{tipo}}
+* [Mapa Escolar](https://mapaescolar.abc.gob.ar/mapaescolar/)
+* [Streetview libre, Mapillary](https://www.mapillary.com/app/?lat=-36.3957790932024&lng=-60.04457047804601&z=6.036606552140104)
+
+
+## Si {{tipo}} ya esta en el mapa:
+* Solo actualiza/añadi los campos faltantes (Al final los menciono)
+
+## En caso contrario:
+* Hay que agregar {{tipo}}.
+* Deja una nota de que es lo que pasa {{tipo}} en particular.
+
+
+### Opcional:
+
+#### En la vista satelital: 
+
+* Si el edificio es visible añadilo
+  * buildindg:{{amenity}}
+* Si es posible añadir:
+  * landuse:education (El area total dedicada a {{tipo}} (El terreno))
+  * landuse:grass (Area destinada al pasto)
+  * leisure:pitch (Cancha de deportes)
+
+
+### Como minimo {{tipo}} deberia tener estos atributos:
+* name={{name}}
+* oficial_name={{oficial_name}}
+* amenity={{amenity}}
+* operator:type={{operator:type}}
+* house:number={{house:number}}
+* ref:cue={{ref:cue}}
+* isced:level={{isced:level}}
+* email={{email}}
+* phone={{phone}}
+* postcode={{postcode}}
+* opening_hours={{opening_hours}}
+{{education_for:disabled}}
+
+
+
+
