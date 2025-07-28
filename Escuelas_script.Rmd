@@ -374,6 +374,8 @@ dosm$name <- paste0(
 dosm$name <- str_replace(dosm$name, "n°\\s*", "")
 dosm$name <- str_replace(dosm$name, regex("n°\\s*", ignore_case = TRUE), "")
 dosm$name <- str_replace(dosm$name, regex("n[º°]\\s*", ignore_case = TRUE), "")
+#Eliminar las comillas
+dosm$name <- str_replace_all(dosm$name, '"', "")
 
 dosm$name <- str_to_title(dosm$name)
 
@@ -391,7 +393,7 @@ dosm$`oficial_name` <- sapply(df$nombre, to_custom_title)
 ## Archivo para MapRoulette
 
 ```{r}
-#st_write(dosm, "MR_UEL_salida_final.geojson", driver = "GeoJSON")
+st_write(dosm, "MR_UEL_salida_final.geojson", driver = "GeoJSON")
 ```
 
 
@@ -408,13 +410,24 @@ df <- df %>%
 dosm$`addr:housenumber` <- df$`addr:housenumber` 
 
 
+df <- df %>%
+  mutate(es_especial = ifelse(
+    str_detect(nombre, regex("ESPECIAL", ignore_case = TRUE)),
+    "yes",
+    ""))
+dosm$`education_for:disabled` <- df$es_especial
+
+
+
 columnas_josm <- c("name","oficial_name","amenity","operator:type",
                     "addr:housenumber","ref:cue","ref:cui","isced:level","email","phone",
                     "addr:postcode","opening_hours","education_for:disabled","geometry")
 
 djosm <- dosm[, c(columnas_josm)]
 
-#st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
+djosm$`addr:full` <- dosm$calle
+
+st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
 ```
 
 ```{r}
@@ -476,11 +489,13 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 * Si el edificio es visible añadilo
   * buildindg:{{amenity}}
 * Si es posible añadir:
-  * landuse:education (El area total dedicada a {{tipo}} (El terreno))
-  * landuse:grass (Area destinada al pasto)
+  * landuse:education
+    * El area total dedicada a {{tipo}} (El terreno)
   * leisure:pitch (Cancha de deportes)
-  * leisure:park 
+  * leisure:park
+    * Area de con juegos de {{tipo}}
   * leisure:schoolyard
+    * Patio interno de {{tipo}}
 
 
 
@@ -489,12 +504,12 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 * oficial_name={{oficial_name}}
 * amenity={{amenity}}
 * operator:type={{operator:type}}
-* house:number={{house:number}}
+* addr:housenumber={{house:number}}
 * ref:cue={{ref:cue}}
 * isced:level={{isced:level}}
 * email={{email}}
 * phone={{phone}}
-* postcode={{postcode}}
+* addr:postcode={{postcode}}
 * opening_hours={{opening_hours}}
 {{education_for:disabled}}
 
