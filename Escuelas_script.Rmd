@@ -469,6 +469,7 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 
 #### Eres libre de utilizar otras fuentes para ubicar {{tipo}}
 * [Mapa Escolar](https://mapaescolar.abc.gob.ar/mapaescolar/)
+* [Descargar este Geojson](https://github.com/Juanchumu/EscuelasMapRoulette/blob/main/josm_UEL_salida_final.geojson) Dataset creado a partir del mapa escolar
 * [Streetview libre, Mapillary](https://www.mapillary.com/app/?lat=-36.3957790932024&lng=-60.04457047804601&z=6.036606552140104)
 
 
@@ -530,7 +531,13 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
   * Prevalece el que tenga las caracteristicas
 * addr:postcode
   * 1)de tipo "B9999ALF"
-  * 2)de tipo "B9999" 
+  * 2)de tipo "B9999"
+* addr:street
+  * Si la ubicacion del {{tipo}}
+    * es una zona rural, no hay necesidad de añadirlo
+    * es una zona urbana, se puede añadir con el nombre de la calle
+      * addr:street=Avenida San Martin 
+      * addr:street=321 - Calle Falsa
 
 
 # Changeset description
