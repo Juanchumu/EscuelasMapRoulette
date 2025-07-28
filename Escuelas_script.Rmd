@@ -31,6 +31,7 @@ library('sf')
 #install.packages("mapview")
 #install.packages("geosphere")
 #install.packages("shadowtext")
+#install.packages("osmdata")
 
 library(dplyr)
 library('mapview')
@@ -42,6 +43,8 @@ library(stringr)
 library(grid)
 library(tidyverse)
 library(shadowtext)
+
+library(osmdata)
 
 BLUE <- "#076fa2"
 RED <- "#E3120B"
@@ -60,311 +63,13 @@ gdf <- st_read("Unidades Educativas Locales 30-06-2025.geojson")
 ```
 
 
-```{r}
-barplot(table(gdf$desfavorabilidad), 
-     main = "Desfavorabilidad",
-     xlab = "Valor",
-     ylab = "Frecuencia Absoluta", 
-     col = "lightblue",
-     border = "black")
-
-```
-
-```{r}
-#para ver el recuento de categorias
-datos <- as.data.frame(table(gdf$subvencion))
-
-
-plt <- ggplot(datos) +
-  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
-
-plt <- plt + 
-  scale_x_continuous(
-    #limits = c(0, 8000),
-    #breaks = seq(0, 55, by = 5), 
-    expand = c(0, 0), # The horizontal axis does not extend to either side
-    position = "top"  # Labels are located on the top
-  ) +
-  # The vertical axis only extends upwards 
-  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
-  theme(
-    # Set background color to white
-    panel.background = element_rect(fill = "white"),
-    # Set the color and the width of the grid lines for the horizontal axis
-    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
-    # Remove tick marks by setting their length to 0
-    axis.ticks.length = unit(0, "mm"),
-    # Remove the title for both axes
-    axis.title = element_blank(),
-    # Only left line of the vertical axis is painted in black
-    axis.line.y.left = element_line(color = "black"),
-    # Remove labels from the vertical axis
-    axis.text.y = element_blank(),
-    # But customize labels for the horizontal axis
-    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
-  )
-
-plt <- plt + 
-  geom_shadowtext(
-    data = subset(datos, Freq < 4000),
-    aes(Freq, y = Var1, label = Var1),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = BLUE,
-    bg.colour = "white",
-    bg.r = 0.2,
-    family = "Econ Sans Cnd",
-    size = 7
-  ) + 
-  geom_text(
-    data = subset(datos, Freq >= 4000),
-    aes(0, y = Var1, label = Var1),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = "white",
-    family = "Econ Sans Cnd",
-    size = 7
-  )
-
-plt <- plt +
-  labs(
-    title = "Distribución de Subvencion",
-    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
-  ) + 
-  theme(
-    plot.title = element_text(
-      family = "Econ Sans Cnd", 
-      face = "bold",
-      size = 12
-    ),
-    plot.subtitle = element_text(
-      family = "Econ Sans Cnd",
-      size = 8
-    )
-  )
-plt
-
-
-```
-
-```{r}
-#para ver el recuento de categorias
-datos <- as.data.frame(table(gdf$depend_func))
-
-
-plt <- ggplot(datos) +
-  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
-
-plt <- plt + 
-  scale_x_continuous(
-    #limits = c(0, 8000),
-    #breaks = seq(0, 55, by = 5), 
-    expand = c(0, 0), # The horizontal axis does not extend to either side
-    position = "top"  # Labels are located on the top
-  ) +
-  # The vertical axis only extends upwards 
-  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
-  theme(
-    # Set background color to white
-    panel.background = element_rect(fill = "white"),
-    # Set the color and the width of the grid lines for the horizontal axis
-    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
-    # Remove tick marks by setting their length to 0
-    axis.ticks.length = unit(0, "mm"),
-    # Remove the title for both axes
-    axis.title = element_blank(),
-    # Only left line of the vertical axis is painted in black
-    axis.line.y.left = element_line(color = "black"),
-    # Remove labels from the vertical axis
-    axis.text.y = element_blank(),
-    # But customize labels for the horizontal axis
-    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
-  )
-
-plt <- plt + 
-  geom_shadowtext(
-    data = subset(datos, Freq < 3000),
-    aes(Freq, y = Var1, label = Var1),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = BLUE,
-    bg.colour = "white",
-    bg.r = 0.2,
-    family = "Econ Sans Cnd",
-    size = 4
-  ) + 
-  geom_text(
-    data = subset(datos, Freq >= 3000),
-    aes(0, y = Var1, label = Var1),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = "white",
-    family = "Econ Sans Cnd",
-    size = 4
-  )
-
-plt <- plt +
-  labs(
-    title = "Distribución de Dependencia Funcional",
-    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
-  ) + 
-  theme(
-    plot.title = element_text(
-      family = "Econ Sans Cnd", 
-      face = "bold",
-      size = 12
-    ),
-    plot.subtitle = element_text(
-      family = "Econ Sans Cnd",
-      size = 8
-    )
-  )
-plt
-
-
-
-```
-
-```{r}
-#para ver el recuento de categorias
-table(gdf$periodo)
-
-```
-
-
-
-```{r}
-#table(gdf$nivel)
-datos <- as.data.frame(table(gdf$nivel))
-plt <- ggplot(datos) +
-  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
-
-plt <- plt + 
-  scale_x_continuous(
-    #limits = c(0, 8000),
-    #breaks = seq(0, 55, by = 5), 
-    expand = c(0, 0), # The horizontal axis does not extend to either side
-    position = "top"  # Labels are located on the top
-  ) +
-  # The vertical axis only extends upwards 
-  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
-  theme(
-    # Set background color to white
-    panel.background = element_rect(fill = "white"),
-    # Set the color and the width of the grid lines for the horizontal axis
-    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
-    # Remove tick marks by setting their length to 0
-    axis.ticks.length = unit(0, "mm"),
-    # Remove the title for both axes
-    axis.title = element_blank(),
-    # Only left line of the vertical axis is painted in black
-    axis.line.y.left = element_line(color = "black"),
-    # Remove labels from the vertical axis
-    axis.text.y = element_blank(),
-    # But customize labels for the horizontal axis
-    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
-  )
-
-plt <- plt + 
-  geom_shadowtext(
-    data = subset(datos, Freq < 1000),
-    aes(Freq, y = Var1, label = Var1),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = BLUE,
-    bg.colour = "white",
-    bg.r = 0.2,
-    family = "Econ Sans Cnd",
-    size = 7
-  ) + 
-  geom_text(
-    data = subset(datos, Freq >= 1000),
-    aes(0, y = Var1, label = Var1),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = "white",
-    family = "Econ Sans Cnd",
-    size = 7
-  )
-
-plt <- plt +
-  labs(
-    title = "Distribución de Escuelas según Nivel de Enseñanza",
-    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
-  ) + 
-  theme(
-    plot.title = element_text(
-      family = "Econ Sans Cnd", 
-      face = "bold",
-      size = 12
-    ),
-    plot.subtitle = element_text(
-      family = "Econ Sans Cnd",
-      size = 8
-    )
-  )
-plt
-
-
-
-```
-
-
-```{r}
-barplot(table(gdf$id_nivel), 
-     main = "id_nivel",
-     xlab = "Valor",
-     ylab = "Frecuencia Absoluta", 
-     col = "lightblue",
-     border = "black")
-
-
-```
-```{r}
-table(gdf$nivel, gdf$id_nivel)
-
-```
-
-```{r}
-#para ver el recuento de categorias de turnos
-table(gdf$turnos)
-
-```
-
-```{r}
-#para ver el recuento de categorias de sector
-table(gdf$sector)
-
-```
-
-```{r}
-#para ver el recuento de categorias de distrito
-table(gdf$distrito)
-
-```
-
-
-
-
-```{r}
-if(FALSE){
-  columnas_clave <- c("numero_fila","distrito","cueanexo",
-                     "nombre","calle","nro","calle_lateral_derecha",
-                     "calle_lateral_izquierda","localidad","codigo_postal",
-                     "caracteristica_telefonica","nro_telefono",
-                     "email","sector","seccion_electoral",
-                     "latitud","longitud","nivel","turnos","id_nivel","geometry")
-}
-```
-
-
 Solamente me quedo con las columnas que pueden ser importadas a OpenStreetMap
 ```{r}
 columnas_clave <- c("cueanexo",
                    "nombre","calle","nro","calle_lateral_derecha",
                    "calle_lateral_izquierda","localidad","codigo_postal",
                    "caracteristica_telefonica","nro_telefono",
-                   "email","sector",
+                   "email","sector","cui",
                    "latitud","longitud","nivel","turnos","id_nivel","geometry")
 
 dataset_reducido <- gdf[, c(columnas_clave)]
@@ -376,9 +81,6 @@ dataset_reducido <- gdf[, c(columnas_clave)]
 #mapview(dataset_filtrado)
 
 ```
-
-
-
 
 
 ### Escuelas cercanas
@@ -460,7 +162,7 @@ barplot(table(df$cercanos),
 df$cercanos <- as.factor(df$cercanos) #tiene que estar como factor para que lo tome
 #mapview(df)
 
-mapview(df, zcol = "cercanos")
+#mapview(df, zcol = "cercanos")
 ```
 
 
@@ -474,13 +176,13 @@ dosm <- df[, "email"]
 dosm$latitud <- df$latitud
 dosm$longitud <- df$longitud
 df <- df %>%
-  mutate(`isced:level` = case_when(
+  mutate(`isced:level` = as.integer(case_when(
     id_nivel == 1 ~ 0,
     id_nivel == 2 ~ 1,
     id_nivel == 3 ~ 2,
     id_nivel == 4 ~ 3,
     id_nivel == 5 ~ 2
-  ))
+  )))
 dosm$`isced:level` <- df$`isced:level`
 
 
@@ -513,15 +215,18 @@ dosm$`operator:type` <- df$`operator:type`
 
 
 df <- df %>%
-  mutate(`house:number` = case_when(
+  mutate(`addr:housenumber` = case_when(
     nro == 'S/N' ~ "No hay altura registrada",
     nro != 'S/N' ~ nro
   ))
-dosm$`house:number` <- df$`house:number` 
+dosm$`addr:housenumber` <- df$`addr:housenumber` 
 
 dosm$`ref:cue` <- df$cueanexo
+dosm$`ref:cui` <- df$cui
+dosm$`ref:cue` <- str_replace_all(dosm$`ref:cue`, ",", ";")
+dosm$`ref:cui` <- str_replace_all(dosm$`ref:cui`, ",", ";")
 
-dosm$postcode <- df$codigo_postal
+dosm$`addr:postcode` <- df$codigo_postal
 
 ```
 
@@ -682,22 +387,40 @@ dosm$`oficial_name` <- sapply(df$nombre, to_custom_title)
 
 
 
-```{r}
-mapview(dosm)
-```
+
+## Archivo para MapRoulette
 
 ```{r}
-st_write(dosm, "reducido_UEL_salida_final.geojson", driver = "GeoJSON")
+#st_write(dosm, "MR_UEL_salida_final.geojson", driver = "GeoJSON")
 ```
+
+
+## Archivo para JOSM
+
+
 ```{r}
+
+df <- df %>%
+  mutate(`addr:housenumber` = case_when(
+    nro == 'S/N' ~ "",
+    nro != 'S/N' ~ nro
+  ))
+dosm$`addr:housenumber` <- df$`addr:housenumber` 
+
+
 columnas_josm <- c("name","oficial_name","amenity","operator:type",
-                    "house:number","ref:cue","isced:level","email","phone",
-                    "postcode","opening_hours","education_for:disabled","geometry")
+                    "addr:housenumber","ref:cue","ref:cui","isced:level","email","phone",
+                    "addr:postcode","opening_hours","education_for:disabled","geometry")
 
 djosm <- dosm[, c(columnas_josm)]
 
-st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
+#st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
 ```
+
+```{r}
+mapview(djosm)
+```
+
 
 ```{r}
 #para ver el recuento de categorias de turnos
@@ -738,6 +461,8 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 
 ## Si {{tipo}} ya esta en el mapa:
 * Solo actualiza/añadi los campos faltantes (Al final los menciono)
+* Si esta pero el nodo proporcionado difiere
+  * 
 
 ## En caso contrario:
 * Hay que agregar {{tipo}}.
@@ -754,6 +479,9 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
   * landuse:education (El area total dedicada a {{tipo}} (El terreno))
   * landuse:grass (Area destinada al pasto)
   * leisure:pitch (Cancha de deportes)
+  * leisure:park 
+  * leisure:schoolyard
+
 
 
 ### Como minimo {{tipo}} deberia tener estos atributos:
@@ -770,6 +498,25 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 * opening_hours={{opening_hours}}
 {{education_for:disabled}}
 
+## Resolucion de Conflictos:
+* amenity
+  * si hay una escuela y un jardin; deberian ser nodos separados.
+* house:number [854 vs 802]
+  * Si el nodo esta a mitad de cuadra, seguramente sea 854 
+* ref:cue
+  * Prevalece el suministrado
+  * Puede diferir en 0 (ceros), es mejor que tenga los ceros
+* isced:level
+  * Si tienen 2 ref:cue distintos, deberian ser nodos separados
+    * cada uno con su propio isced:level
+* email
+  * se deberian registrar varios emails separados por ; (punto y coma)
+* phone
+  * Prevalece el que tenga las caracteristicas
+* addr:postcode
+  * 1)de tipo "B9999ALF"
+  * 2)de tipo "B9999" 
+
 
 # Changeset description
 
@@ -777,3 +524,84 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 
 #Mapa_Escolar_Buenos_Aires
 
+
+```{r}
+#Calcular cuantos registros estan sin mapear, cuantos estan incompletos:
+
+# 1. Definir el área geográfica
+prov_bsas <- getbb("Provincia de Buenos Aires, Argentina", format_out = "matrix")
+
+# 2. Crear la consulta Overpass para varios valores de isced:level
+consulta <- opq(bbox = prov_bsas) %>%
+  add_osm_feature(key = "isced:level", value = c("0", "1", "2", "3"))
+
+# 3. Descargar los datos
+resultado <- osmdata_sf(consulta)
+
+# 4. Unir puntos, líneas y polígonos (algunos elementos están en distintas geometrías)
+escuelas <- list(
+  resultado$osm_points,
+  resultado$osm_lines,
+  resultado$osm_polygons,
+  resultado$osm_multipolygons
+) %>%
+  purrr::compact() %>%     # Quita NULLs si alguna capa no tiene datos
+  bind_rows()
+
+
+
+```
+
+
+```{r}
+total_filas <- nrow(escuelas)
+
+dfe <- data.frame(
+  columna = colnames(escuelas),
+  no_nulos = colSums(!is.na(escuelas)),
+  porcentaje_completo = round(colSums(!is.na(escuelas)) / total_filas * 100, 1)
+)
+
+dfe
+```
+
+#valores repetidos de cue
+# 769 valores repetidos 2 veces,
+# 391 valores repetidos 3 veces,
+# 65 valores repetidos 4 veces,
+# 10 valores repetidos 5 veces,
+
+
+```{r}
+#valores repetidos de cue
+# 769 valores repetidos 2 veces,
+# 391 valores repetidos 3 veces,
+# 65 valores repetidos 4 veces,
+# 10 valores repetidos 5 veces,
+# creo que es porque la misma escuela tiene primaria y secundaria 
+tabla_repetidos <- as.data.frame(table(gdf$cueanexo))
+colnames(tabla_repetidos) <- c("valor", "frecuencia")
+
+
+tabla_repetidos <-tabla_repetidos %>% filter(frecuencia > 5)
+tabla_repetidos
+
+```
+```{r}
+#valores repetidos de cui
+# 3149 valores repetidos 2 veces,
+# 1988 valores repetidos 3 veces,
+# 358 valores repetidos 4 veces,
+# 76 valores repetidos 5 veces,
+# 23 valores repetidos 6 veces,
+# 10 valores repetidos 7 veces,
+# 3 valores repetidos 8 veces
+# creo que es porque la misma escuela tiene primaria y secundaria 
+tabla_repetidos <- as.data.frame(table(gdf$cui))
+colnames(tabla_repetidos) <- c("valor", "frecuencia")
+
+
+tabla_repetidos <-tabla_repetidos %>% filter(frecuencia == 9)
+tabla_repetidos
+
+```

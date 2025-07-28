@@ -1,0 +1,76 @@
+---
+title: "Estado_OSM_escuelas"
+author: "Juan Jara"
+date: "2025-07-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library('sf')
+library(tidyverse)
+library(dplyr)
+library(osmdata)
+```
+
+# Errores de etiquetado 
+
+Se detectaron inconsistencias en los datos descargados de OSM, 
+como etiquetas incorrectas o mal ubicadas.
+
+
+* 115 etiquetas para los nodos de educacion
+
+
+Primero voy a revisarlos y tratar de reducir ese numero.
+Dicho esto, este archivo solo queda como para comparar un antes y despues
+
+
+```{r}
+#Calcular cuantos registros estan sin mapear, cuantos estan incompletos:
+
+# 1. Definir el área geográfica
+prov_bsas <- getbb("Provincia de Buenos Aires, Argentina", format_out = "matrix")
+
+# 2. Crear la consulta Overpass para varios valores de isced:level
+consulta <- opq(bbox = prov_bsas) %>%
+  add_osm_feature(key = "isced:level", value = c("0", "1", "2", "3"))
+
+# 3. Descargar los datos
+resultado <- osmdata_sf(consulta)
+
+# 4. Unir puntos, líneas y polígonos (algunos elementos están en distintas geometrías)
+escuelas <- list(
+  resultado$osm_points,
+  resultado$osm_lines,
+  resultado$osm_polygons,
+  resultado$osm_multipolygons
+) %>%
+  purrr::compact() %>%     # Quita NULLs si alguna capa no tiene datos
+  bind_rows()
+
+
+
+```
+
+
+```{r}
+total_filas <- nrow(escuelas)
+
+dfe <- data.frame(
+  columna = colnames(escuelas),
+  no_nulos = colSums(!is.na(escuelas)),
+  porcentaje_completo = round(colSums(!is.na(escuelas)) / total_filas * 100, 1)
+)
+
+dfe
+```
+```{r}
+colnames(escuelas)
+```
+
+
+

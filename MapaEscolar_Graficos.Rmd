@@ -1,0 +1,337 @@
+---
+title: "Graficos"
+author: "Juan Jara"
+date: "2025-07-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library('sf')
+
+#sudo apt update
+#sudo apt install build-essential libgdal-dev libgeos-dev libproj-dev libudunits2-dev libglpk-dev
+#install.packages("Rcpp")
+#install.packages("terra")
+#install.packages("mapview")
+#install.packages("geosphere")
+#install.packages("shadowtext")
+#install.packages("osmdata")
+
+library(dplyr)
+library('mapview')
+library(geosphere)
+
+library(stringr)
+
+
+library(grid)
+library(tidyverse)
+library(shadowtext)
+
+library(osmdata)
+
+BLUE <- "#076fa2"
+RED <- "#E3120B"
+BLACK <- "#202020"
+GREY <- "grey50"
+
+```
+
+### Carga de datos:
+```{r}
+gdf <- st_read("Unidades Educativas Locales 30-06-2025.geojson")
+
+#Dataset reducido
+#gdf <- gdf[4000:4300,]
+
+```
+
+
+```{r}
+barplot(table(gdf$desfavorabilidad), 
+     main = "Desfavorabilidad",
+     xlab = "Valor",
+     ylab = "Frecuencia Absoluta", 
+     col = "lightblue",
+     border = "black")
+
+```
+
+```{r}
+#para ver el recuento de categorias
+datos <- as.data.frame(table(gdf$subvencion))
+
+
+plt <- ggplot(datos) +
+  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
+
+plt <- plt + 
+  scale_x_continuous(
+    #limits = c(0, 8000),
+    #breaks = seq(0, 55, by = 5), 
+    expand = c(0, 0), # The horizontal axis does not extend to either side
+    position = "top"  # Labels are located on the top
+  ) +
+  # The vertical axis only extends upwards 
+  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
+  theme(
+    # Set background color to white
+    panel.background = element_rect(fill = "white"),
+    # Set the color and the width of the grid lines for the horizontal axis
+    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
+    # Remove tick marks by setting their length to 0
+    axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Remove labels from the vertical axis
+    axis.text.y = element_blank(),
+    # But customize labels for the horizontal axis
+    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
+  )
+
+plt <- plt + 
+  geom_shadowtext(
+    data = subset(datos, Freq < 4000),
+    aes(Freq, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = BLUE,
+    bg.colour = "white",
+    bg.r = 0.2,
+    family = "Econ Sans Cnd",
+    size = 7
+  ) + 
+  geom_text(
+    data = subset(datos, Freq >= 4000),
+    aes(0, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = "white",
+    family = "Econ Sans Cnd",
+    size = 7
+  )
+
+plt <- plt +
+  labs(
+    title = "Distribución de Subvencion",
+    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
+  ) + 
+  theme(
+    plot.title = element_text(
+      family = "Econ Sans Cnd", 
+      face = "bold",
+      size = 12
+    ),
+    plot.subtitle = element_text(
+      family = "Econ Sans Cnd",
+      size = 8
+    )
+  )
+plt
+
+
+```
+
+```{r}
+#para ver el recuento de categorias
+datos <- as.data.frame(table(gdf$depend_func))
+
+
+plt <- ggplot(datos) +
+  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
+
+plt <- plt + 
+  scale_x_continuous(
+    #limits = c(0, 8000),
+    #breaks = seq(0, 55, by = 5), 
+    expand = c(0, 0), # The horizontal axis does not extend to either side
+    position = "top"  # Labels are located on the top
+  ) +
+  # The vertical axis only extends upwards 
+  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
+  theme(
+    # Set background color to white
+    panel.background = element_rect(fill = "white"),
+    # Set the color and the width of the grid lines for the horizontal axis
+    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
+    # Remove tick marks by setting their length to 0
+    axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Remove labels from the vertical axis
+    axis.text.y = element_blank(),
+    # But customize labels for the horizontal axis
+    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
+  )
+
+plt <- plt + 
+  geom_shadowtext(
+    data = subset(datos, Freq < 3000),
+    aes(Freq, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = BLUE,
+    bg.colour = "white",
+    bg.r = 0.2,
+    family = "Econ Sans Cnd",
+    size = 4
+  ) + 
+  geom_text(
+    data = subset(datos, Freq >= 3000),
+    aes(0, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = "white",
+    family = "Econ Sans Cnd",
+    size = 4
+  )
+
+plt <- plt +
+  labs(
+    title = "Distribución de Dependencia Funcional",
+    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
+  ) + 
+  theme(
+    plot.title = element_text(
+      family = "Econ Sans Cnd", 
+      face = "bold",
+      size = 12
+    ),
+    plot.subtitle = element_text(
+      family = "Econ Sans Cnd",
+      size = 8
+    )
+  )
+plt
+
+
+
+```
+
+```{r}
+#para ver el recuento de categorias
+table(gdf$periodo)
+
+```
+
+
+
+```{r}
+#table(gdf$nivel)
+datos <- as.data.frame(table(gdf$nivel))
+plt <- ggplot(datos) +
+  geom_col(aes(Freq, Var1), fill = BLUE, width = 0.8) 
+
+plt <- plt + 
+  scale_x_continuous(
+    #limits = c(0, 8000),
+    #breaks = seq(0, 55, by = 5), 
+    expand = c(0, 0), # The horizontal axis does not extend to either side
+    position = "top"  # Labels are located on the top
+  ) +
+  # The vertical axis only extends upwards 
+  scale_y_discrete(expand = expansion(add = c(0, 0.5))) +
+  theme(
+    # Set background color to white
+    panel.background = element_rect(fill = "white"),
+    # Set the color and the width of the grid lines for the horizontal axis
+    panel.grid.major.x = element_line(color = "#A8BAC4", size = 0.3),
+    # Remove tick marks by setting their length to 0
+    axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Remove labels from the vertical axis
+    axis.text.y = element_blank(),
+    # But customize labels for the horizontal axis
+    axis.text.x = element_text(family = "Econ Sans Cnd", size = 10)
+  )
+
+plt <- plt + 
+  geom_shadowtext(
+    data = subset(datos, Freq < 1000),
+    aes(Freq, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = BLUE,
+    bg.colour = "white",
+    bg.r = 0.2,
+    family = "Econ Sans Cnd",
+    size = 7
+  ) + 
+  geom_text(
+    data = subset(datos, Freq >= 1000),
+    aes(0, y = Var1, label = Var1),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = "white",
+    family = "Econ Sans Cnd",
+    size = 7
+  )
+
+plt <- plt +
+  labs(
+    title = "Distribución de Escuelas según Nivel de Enseñanza",
+    subtitle = "Fuente: Unidades Educativas Locales 30-06-25"
+  ) + 
+  theme(
+    plot.title = element_text(
+      family = "Econ Sans Cnd", 
+      face = "bold",
+      size = 12
+    ),
+    plot.subtitle = element_text(
+      family = "Econ Sans Cnd",
+      size = 8
+    )
+  )
+plt
+
+
+
+```
+
+
+```{r}
+barplot(table(gdf$id_nivel), 
+     main = "id_nivel",
+     xlab = "Valor",
+     ylab = "Frecuencia Absoluta", 
+     col = "lightblue",
+     border = "black")
+
+
+```
+```{r}
+table(gdf$nivel, gdf$id_nivel)
+
+```
+
+```{r}
+#para ver el recuento de categorias de turnos
+table(gdf$turnos)
+
+```
+
+```{r}
+#para ver el recuento de categorias de sector
+table(gdf$sector)
+
+```
+
+```{r}
+#para ver el recuento de categorias de distrito
+table(gdf$distrito)
+
+```
+
+
