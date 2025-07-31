@@ -16,6 +16,8 @@ El flujo de trabajo incluye la limpieza y estandarización del dataset original,
 
 Posteriormente, los datos son convertidos a un formato GeoJSON que puede ser cargado en MapRoulette, permitiendo a la comunidad validar, corregir y completar los datos directamente sobre el mapa, respetando las convenciones del modelado en OSM.
 
+Proyecto en [GitHub](https://github.com/Juanchumu/EscuelasMapRoulette)
+
 De esta manera, se busca mejorar la cobertura, precisión y semántica de la información educativa en OpenStreetMap, especialmente en zonas donde los datos están incompletos o desactualizados.
 
 
@@ -381,7 +383,7 @@ dosm$name <- str_to_title(dosm$name)
 
 dosm$name <- sapply(dosm$name, to_custom_title)
 
-dosm$`oficial_name` <- sapply(df$nombre, to_custom_title) 
+dosm$`official_name` <- sapply(df$nombre, to_custom_title) 
 
 
 
@@ -419,7 +421,7 @@ dosm$`education_for:disabled` <- df$es_especial
 
 
 
-columnas_josm <- c("name","oficial_name","amenity","operator:type",
+columnas_josm <- c("name","official_name","amenity","operator:type",
                     "addr:housenumber","ref:cue","ref:cui","isced:level","email","phone",
                     "addr:postcode","opening_hours","education_for:disabled","geometry")
 
@@ -454,7 +456,9 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 
 #Instrucciones
 
-## Antes de Empezar: [Lee la pagina de la wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación)
+## Antes de Empezar: 
+* [Lee la pagina de la wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación)
+* [Recomiendo descargar este Geojson para Josm](https://github.com/Juanchumu/EscuelasMapRoulette/blob/main/josm_UEL_salida_final.geojson) que es un dataset creado a partir del mapa escolar.
 
 
 ## En esta tarea, tenes que buscar {{tipo}}:
@@ -462,42 +466,23 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 * Ubicada en la calle:{{calle}}
 * {{latitud}}, {{longitud}}
 
-### Advertencias en la En la ubicacion:
+### Dificultad de la ubicacion:
 * {{cercania}}
 * Y la misma puede que este lejos de la ubicacion marcada.
 
 
 #### Eres libre de utilizar otras fuentes para ubicar {{tipo}}
 * [Mapa Escolar](https://mapaescolar.abc.gob.ar/mapaescolar/)
-* [Descargar este Geojson](https://github.com/Juanchumu/EscuelasMapRoulette/blob/main/josm_UEL_salida_final.geojson) Dataset creado a partir del mapa escolar
 * [Streetview libre, Mapillary](https://www.mapillary.com/app/?lat=-36.3957790932024&lng=-60.04457047804601&z=6.036606552140104)
 
 
 ## Si {{tipo}} ya esta en el mapa:
-* Solo actualiza/añadi los campos faltantes (Al final los menciono)
-* Si esta pero el nodo proporcionado difiere
-  * 
+* Solo hace un merge con el nodo proporcionado
 
 ## En caso contrario:
 * Hay que agregar {{tipo}}.
+ * Utiliza el nodo proporcionado
 * Deja una nota de que es lo que pasa {{tipo}} en particular.
-
-
-### Opcional:
-
-#### En la vista satelital: 
-
-* Si el edificio es visible añadilo
-  * buildindg:{{amenity}}
-* Si es posible añadir:
-  * landuse:education
-    * El area total dedicada a {{tipo}} (El terreno)
-  * leisure:pitch (Cancha de deportes)
-  * leisure:park
-    * Area de con juegos de {{tipo}}
-  * leisure:schoolyard
-    * Patio interno de {{tipo}}
-
 
 
 ### Como minimo {{tipo}} deberia tener estos atributos:
@@ -513,32 +498,6 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 * addr:postcode={{postcode}}
 * opening_hours={{opening_hours}}
 {{education_for:disabled}}
-
-## Resolucion de Conflictos:
-* amenity
-  * si hay una escuela y un jardin; deberian ser nodos separados.
-* house:number [854 vs 802]
-  * Si el nodo esta a mitad de cuadra, seguramente sea 854 
-* ref:cue
-  * Prevalece el suministrado
-  * Puede diferir en 0 (ceros), es mejor que tenga los ceros
-* isced:level
-  * Si tienen 2 ref:cue distintos, deberian ser nodos separados
-    * cada uno con su propio isced:level
-* email
-  * se deberian registrar varios emails separados por ; (punto y coma)
-* phone
-  * Prevalece el que tenga las caracteristicas
-* addr:postcode
-  * 1)de tipo "B9999ALF"
-  * 2)de tipo "B9999"
-* addr:street
-  * Si la ubicacion del {{tipo}}
-    * es una zona rural, no hay necesidad de añadirlo
-    * es una zona urbana, se puede añadir con el nombre de la calle
-      * addr:street=Avenida San Martin 
-      * addr:street=321 - Calle Falsa
-
 
 # Changeset description
 
