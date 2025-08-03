@@ -48,10 +48,6 @@ library(shadowtext)
 
 library(osmdata)
 
-BLUE <- "#076fa2"
-RED <- "#E3120B"
-BLACK <- "#202020"
-GREY <- "grey50"
 
 ```
 
@@ -80,7 +76,7 @@ dataset_reducido <- gdf[, c(columnas_clave)]
 
 
 ```{r}
-#mapview(dataset_filtrado)
+#mapview(dataset_reducido[dataset_reducido$id_nivel ==8, ])
 
 ```
 
@@ -178,32 +174,45 @@ dosm <- df[, "email"]
 dosm$latitud <- df$latitud
 dosm$longitud <- df$longitud
 df <- df %>%
-  mutate(`isced:level` = as.integer(case_when(
-    id_nivel == 1 ~ 0,
-    id_nivel == 2 ~ 1,
-    id_nivel == 3 ~ 2,
-    id_nivel == 4 ~ 3,
-    id_nivel == 5 ~ 2
-  )))
+  #mutate(`isced:level` = as.integer(case_when(
+  mutate(`isced:level` = case_when(
+    id_nivel == 1 ~ "0",
+    id_nivel == 2 ~ "1",
+    id_nivel == 3 ~ "2;3",
+    id_nivel == 4 ~ "5",
+    id_nivel == 5 ~ "2;3"
+  ))
 dosm$`isced:level` <- df$`isced:level`
 
 
 dosm <- dosm %>%
   mutate(`amenity` = case_when(
-    `isced:level` == 0~ "kindergarten",
-    `isced:level` == 1 ~ "school",
-    `isced:level` == 2 ~ "school",
-    `isced:level` == 3 ~ "college",
+    `isced:level` == "0" ~ "kindergarten",
+    `isced:level` == "1" ~ "school",
+    `isced:level` == "0;1" ~ "school",
+    `isced:level` == "2" ~ "school",
+    `isced:level` == "0;1;2" ~ "school",
+    `isced:level` == "1;2" ~ "school",
+    `isced:level` == "2" ~ "school",
+    `isced:level` == "3" ~ "college",
+    `isced:level` == "5" ~ "college",
   ))
 
 
 #Dedicada para instruccion 
 dosm <- dosm %>%
   mutate(`tipo` = case_when(
-    `isced:level` == 0~ "el jardín",
-    `isced:level` == 1 ~ "la escuela",
-    `isced:level` == 2 ~ "la escuela",
-    `isced:level` == 3 ~ "el colegio",
+    `isced:level` ==  "0" ~ "el jardín",
+    `isced:level` == "0;1" ~ "la escuela",
+    `isced:level` == "0;1;2" ~ "la escuela",
+    `isced:level` == "0;1;2;3" ~ "la escuela",
+    `isced:level` == "1" ~ "la escuela",
+    `isced:level` == "1;2" ~ "la escuela",
+    `isced:level` == "1;2;3" ~ "la escuela",
+    `isced:level` == "2" ~ "la escuela",
+    `isced:level` == "2;3" ~ "la escuela",
+    `isced:level` == "3" ~ "la escuela",
+    `isced:level` == "5" ~ "el colegio",
   ))
 
 
@@ -389,7 +398,9 @@ dosm$`official_name` <- sapply(df$nombre, to_custom_title)
 
 ```
 
-
+```{r}
+table(dosm$`isced:level`)
+```
 
 
 ## Archivo para MapRoulette
@@ -433,7 +444,7 @@ st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
 ```
 
 ```{r}
-mapview(djosm)
+#mapview(djosm)
 ```
 
 
@@ -456,38 +467,15 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 
 #Instrucciones
 
-## Antes de Empezar: 
-* [Lee la pagina de la wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación)
-* [Recomiendo descargar este Geojson para Josm](https://github.com/Juanchumu/EscuelasMapRoulette/blob/main/josm_UEL_salida_final.geojson) que es un dataset creado a partir del mapa escolar.
+* Antes de Empezar [lee la pagina de la wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación)
+
+### En esta tarea, tenes que buscar {{tipo}} {{name}} 
+y como minimo deberia tener estos atributos:
 
 
-## En esta tarea, tenes que buscar {{tipo}}:
-* {{oficial_name}} 
-* Ubicada en la calle:{{calle}}
-* {{latitud}}, {{longitud}}
-
-### Dificultad de la ubicacion:
-* {{cercania}}
-* Y la misma puede que este lejos de la ubicacion marcada.
-
-
-#### Eres libre de utilizar otras fuentes para ubicar {{tipo}}
-* [Mapa Escolar](https://mapaescolar.abc.gob.ar/mapaescolar/)
-* [Streetview libre, Mapillary](https://www.mapillary.com/app/?lat=-36.3957790932024&lng=-60.04457047804601&z=6.036606552140104)
-
-
-## Si {{tipo}} ya esta en el mapa:
-* Solo hace un merge con el nodo proporcionado
-
-## En caso contrario:
-* Hay que agregar {{tipo}}.
- * Utiliza el nodo proporcionado
-* Deja una nota de que es lo que pasa {{tipo}} en particular.
-
-
-### Como minimo {{tipo}} deberia tener estos atributos:
 * name={{name}}
-* oficial_name={{oficial_name}}
+* official_name={{official_name}}
+* Ubicada en la calle:{{calle}}
 * amenity={{amenity}}
 * operator:type={{operator:type}}
 * addr:housenumber={{house:number}}
@@ -498,6 +486,29 @@ las escuelas estan ubicadas en datos oficiales pero no en OSM
 * addr:postcode={{postcode}}
 * opening_hours={{opening_hours}}
 {{education_for:disabled}}
+
+## Si {{tipo}} ya esta en el mapa:
+* Verifique las etiquetas y unifique con los datos proporcionados
+  * Siguiendo la [wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación)
+
+## En caso contrario:
+* Hay que agregar {{tipo}} en la ubicacion {{latitud}} {{longitud}}.
+  * y complete las etiquetas y datos proporcionados.
+* En caso de que no puedas cumplir la tarea, deja una nota de que es lo que pasa {{tipo}} en particular en este desafio utilizando "No se puede completar" y salteala.
+
+
+### Dificultad de la ubicacion:
+* {{cercania}}
+* Y la misma puede que este lejos de la ubicacion marcada.
+
+
+#### Eres libre de utilizar otras fuentes para ubicar {{tipo}}
+* [Recomiendo descargar este Geojson para Josm](https://github.com/Juanchumu/EscuelasMapRoulette/blob/main/josm_UEL_salida_final.geojson) que es un dataset creado a partir del mapa escolar.
+* En la barra de menu de Josm:  ->Imagenes/Mapa/Mapa Educativo (WMS).
+* [Mapa Escolar](https://mapaescolar.abc.gob.ar/mapaescolar/)
+* [Streetview libre, Mapillary](https://www.mapillary.com/app/?lat=-36.3957790932024&lng=-60.04457047804601&z=6.036606552140104)
+
+
 
 # Changeset description
 
