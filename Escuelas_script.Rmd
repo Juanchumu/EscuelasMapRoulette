@@ -54,7 +54,8 @@ library(osmdata)
 ### Carga de datos:
 ```{r}
 gdf <- st_read("Unidades Educativas Locales 30-06-2025.geojson")
-
+#djosm <- st_read("josm_UEL_salida_final.geojson")
+#dosm <- st_read("MR_UEL_salida_final.geojson")
 #Dataset reducido
 #gdf <- gdf[4000:4300,]
 
@@ -184,19 +185,17 @@ df <- df %>%
   ))
 dosm$`isced:level` <- df$`isced:level`
 
-
-dosm <- dosm %>%
+df <- df %>%
+  #mutate(`isced:level` = as.integer(case_when(
   mutate(`amenity` = case_when(
-    `isced:level` == "0" ~ "kindergarten",
-    `isced:level` == "1" ~ "school",
-    `isced:level` == "0;1" ~ "school",
-    `isced:level` == "2" ~ "school",
-    `isced:level` == "0;1;2" ~ "school",
-    `isced:level` == "1;2" ~ "school",
-    `isced:level` == "2" ~ "school",
-    `isced:level` == "3" ~ "college",
-    `isced:level` == "5" ~ "college",
+    id_nivel == 1 ~ "kindergarten",
+    id_nivel == 2 ~ "school",
+    id_nivel == 3 ~ "school",
+    id_nivel == 4 ~ "college",
+    id_nivel == 5 ~ "school"
   ))
+
+dosm$amenity <- df$amenity
 
 
 #Dedicada para instruccion 
@@ -248,7 +247,7 @@ dosm$`addr:postcode` <- df$codigo_postal
 df <- df %>%
   mutate(es_especial = ifelse(
     str_detect(nombre, regex("ESPECIAL", ignore_case = TRUE)),
-    "   * education_for:disabled=yes",
+    "yes",
     ""))
 dosm$`education_for:disabled` <- df$es_especial
 ```
@@ -398,9 +397,7 @@ dosm$`official_name` <- sapply(df$nombre, to_custom_title)
 
 ```
 
-```{r}
-table(dosm$`isced:level`)
-```
+
 
 
 ## Archivo para MapRoulette
@@ -450,7 +447,7 @@ st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
 
 ```{r}
 #para ver el recuento de categorias de turnos
-table(dosm$`education_for:disabled`)
+table(djosm$`isced:level`, useNA="ifany")
 
 ```
 
@@ -485,15 +482,15 @@ y como minimo deberia tener estos atributos:
 * phone={{phone}}
 * addr:postcode={{postcode}}
 * opening_hours={{opening_hours}}
-{{education_for:disabled}}
+* education_for:disabled= {{education_for:disabled}}
 
 ## Si {{tipo}} ya esta en el mapa:
 * Verifique las etiquetas y unifique con los datos proporcionados
-  * Siguiendo la [wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación)
+  * Siguiendo la [wiki](https://wiki.openstreetmap.org/wiki/ES:Argentina/Educación#Importacion_de_datos_oficiales_a_OSM:)
 
 ## En caso contrario:
 * Hay que agregar {{tipo}} en la ubicacion {{latitud}} {{longitud}}.
-  * y complete las etiquetas y datos proporcionados.
+  * y complete las etiquetas y datos, con los proporcionados.
 * En caso de que no puedas cumplir la tarea, deja una nota de que es lo que pasa {{tipo}} en particular en este desafio utilizando "No se puede completar" y salteala.
 
 
