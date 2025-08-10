@@ -330,12 +330,14 @@ df <- df %>%
     telefono = if_else(
       !is.na(caracteristica_telefonica) & !is.na(nro_telefono) & nro_telefono != "" & caracteristica_telefonica != "",
       paste0("+54 ", caracteristica_telefonica," ", nro_telefono),
-      paste0("No hay telefono registrado")
+      paste0("")
     )
   )
 
-dosm$`phone` <- df$telefono 
-
+dosm$`phone` <- df$telefono
+#Elimina el "0 que esta despues del +54"
+dosm$phone <- str_replace(dosm$phone, "\\+54\\s*0", "+54 ")
+ 
 
 #Calles, calle derecha y izquierda
 df <- df %>%
@@ -447,7 +449,7 @@ st_write(djosm, "josm_UEL_salida_final.geojson", driver = "GeoJSON")
 
 ```{r}
 #para ver el recuento de categorias de turnos
-table(djosm$`isced:level`, useNA="ifany")
+table(dosm$`amenity`, useNA="ifany")
 
 ```
 
